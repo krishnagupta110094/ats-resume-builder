@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Briefcase, CheckCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface SignInPageProps {
   onToggleMode?: () => void;
@@ -10,11 +10,12 @@ interface SignInPageProps {
 const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({
     email: '',
-    phone: '',
     password: '',
+    phone: '',
     rememberMe: false,
   });
 
@@ -33,9 +34,8 @@ const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
       newErrors.email = 'Email is invalid';
     }
 
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^[+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-()]/g, ''))) {
+    // Phone is optional
+    if (formData.phone && formData.phone.length > 0 && formData.phone.length < 10) {
       newErrors.phone = 'Please enter a valid phone number';
     }
 
@@ -55,28 +55,26 @@ const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      // For demo mode, we'll create a demo user and sign them in
-      const success = await signIn(formData.email, formData.password);
+      // Use real backend authentication
+      const success = await signIn(formData.email, formData.password, formData.phone);
 
       if (success) {
-        console.log('Demo login successful:', formData);
-        navigate('/builder');
+        console.log('Login successful:', formData.email);
+        // Redirect to the page they were trying to access, or default to builder
+        const from = location.state?.from?.pathname || '/builder';
+        navigate(from, { replace: true });
       } else {
-        // If the user doesn't exist, create a demo user for them
-        console.log('Creating demo user and signing in...');
-        // For demo purposes, just sign them in anyway
-        const demoSuccess = await signIn('demo@example.com', 'demo123');
-        if (demoSuccess) {
-          navigate('/builder');
-        } else {
-          alert('Demo login successful! Redirecting to Resume Builder...');
-          navigate('/builder');
-        }
+        setErrors({ 
+          email: 'Invalid email or password. Please check your credentials.',
+          password: 'Invalid email or password. Please check your credentials.'
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Demo login successful! Redirecting to Resume Builder...');
-      navigate('/builder');
+      setErrors({ 
+        email: 'Login failed. Please check your credentials and try again.',
+        password: 'Login failed. Please check your credentials and try again.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -140,17 +138,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
               <p className="form-subtitle">
                 Sign in to your account to continue building your perfect resume
               </p>
-              <div style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                color: 'white',
-                padding: '0.75rem 1rem',
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                marginTop: '1rem',
-                textAlign: 'center'
-              }}>
-                🎭 <strong>Demo Mode:</strong> Use any email and password (min 6 characters) to sign in!
-              </div>
+
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form">
@@ -165,7 +153,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className="form-input"
-                  placeholder="demo@example.com (any email works)"
+                  placeholder="Enter your email address"
                 />
                 {errors.email && (
                   <div className="error-message">{errors.email}</div>
@@ -183,7 +171,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
                   value={formData.phone}
                   onChange={handleInputChange}
                   className="form-input"
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="Enter your phone number"
                 />
                 {errors.phone && (
                   <div className="error-message">{errors.phone}</div>
@@ -202,7 +190,7 @@ const SignInPage: React.FC<SignInPageProps> = ({ onToggleMode }) => {
                     value={formData.password}
                     onChange={handleInputChange}
                     className="form-input password-input"
-                    placeholder="password123 (any 6+ chars work)"
+                    placeholder="Enter your password"
                   />
                   <button
                     type="button"

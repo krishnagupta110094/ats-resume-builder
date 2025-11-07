@@ -50,13 +50,14 @@ export interface Experience {
 
 export interface Project {
   name: string;
-  techStack: string;
-  description: string;
-  link: string;
-  year: string;
-  // Legacy fields
   result: string;
-  technologies?: string[] | string;
+  technologies: string;
+  github?: string;
+  // Legacy fields for backward compatibility
+  techStack?: string;
+  description?: string;
+  link?: string;
+  year?: string;
 }
 
 export interface Skills {

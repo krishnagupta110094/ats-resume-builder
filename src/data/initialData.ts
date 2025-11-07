@@ -73,13 +73,9 @@ export const initialResumeData: ResumeData = {
   projects: [
     {
       name: "",
-      techStack: "",
-      description: "",
-      link: "",
-      year: "",
-      // Legacy fields
       result: "",
-      technologies: ""
+      technologies: "",
+      github: ""
     }
   ],
   techSkills: [""],

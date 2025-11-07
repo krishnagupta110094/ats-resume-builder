@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle, FileText } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 
 interface SignUpPageProps {
   onSignUp?: () => void;
@@ -11,6 +11,7 @@ export default function SignUpPage({ onSignUp }: SignUpPageProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
@@ -43,6 +44,14 @@ export default function SignUpPage({ onSignUp }: SignUpPageProps) {
       setError('Please enter a valid email address.');
       return false;
     }
+    if (!formData.phone.trim()) {
+      setError('Please enter your phone number.');
+      return false;
+    }
+    if (!/^[+]?[1-9][\d]{0,15}$/.test(formData.phone.replace(/[\s\-()]/g, ''))) {
+      setError('Please enter a valid phone number.');
+      return false;
+    }
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters long.');
       return false;
@@ -66,7 +75,7 @@ export default function SignUpPage({ onSignUp }: SignUpPageProps) {
     setIsLoading(true);
 
     try {
-      const success = await signUp(formData.name, formData.email, formData.password);
+      const success = await signUp(formData.name, formData.email, formData.phone, formData.password);
       if (success) {
         setSuccess(true);
         setTimeout(() => {
@@ -173,6 +182,28 @@ export default function SignUpPage({ onSignUp }: SignUpPageProps) {
                   onChange={handleInputChange}
                   className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                   placeholder="Enter your email"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                  placeholder="Enter your phone number"
                 />
               </div>
             </div>

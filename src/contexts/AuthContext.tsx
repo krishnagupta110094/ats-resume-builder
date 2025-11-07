@@ -1,6 +1,7 @@
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { ResumeData } from '../types/resume';
+import { authApi } from '../services/backendApi';
 
 interface User {
   id: string;
@@ -17,8 +18,8 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (name: string, email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string, phone?: string) => Promise<boolean>;
+  signUp: (name: string, email: string, phone: string, password: string) => Promise<boolean>;
   signOut: () => void;
   getUserResume: () => ResumeData | null;
   saveUserResume: (resumeData: ResumeData) => void;
@@ -38,48 +39,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     // Check for existing session on app load
-    const savedUser = localStorage.getItem('currentUser');
+    const savedUser = authApi.getCurrentUser();
     if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('currentUser');
-      }
-    }
-
-    // Initialize demo user if no users exist
-    const existingUsers = localStorage.getItem('users');
-    if (!existingUsers) {
-      const demoUser = {
-        id: 'demo-user',
-        name: 'Demo User',
-        email: 'demo@example.com',
-        password: 'demo123',
+      setUser({
+        ...savedUser,
+        name: savedUser.name || 'User',
         createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('users', JSON.stringify([demoUser]));
+      });
     }
 
     setIsLoading(false);
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, password: string, phone?: string): Promise<boolean> => {
     try {
-      // Get users from localStorage
-      const users: StoredUser[] = JSON.parse(localStorage.getItem('users') || '[]');
-      const foundUser = users.find((u: StoredUser) => u.email === email && u.password === password);
+      // Use backend API for authentication
+      const response = await authApi.login({ email, password, phone });
       
-      if (foundUser) {
+      if (response.token && response.user) {
         const userSession = {
-          id: foundUser.id,
-          name: foundUser.name,
-          email: foundUser.email,
-          createdAt: foundUser.createdAt
+          id: response.user.id,
+          name: response.user.name || 'User',
+          email: response.user.email,
+          createdAt: new Date().toISOString()
         };
         
         setUser(userSession);
-        localStorage.setItem('currentUser', JSON.stringify(userSession));
         return true;
       }
       
@@ -90,41 +75,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const signUp = async (name: string, email: string, password: string): Promise<boolean> => {
+  const signUp = async (name: string, email: string, phone: string, password: string): Promise<boolean> => {
     try {
-      // Get existing users from localStorage
-      const users: StoredUser[] = JSON.parse(localStorage.getItem('users') || '[]');
+      // Use backend API for registration
+      const response = await authApi.register({ name, email, phone, password });
       
-      // Check if user already exists
-      if (users.find((u: StoredUser) => u.email === email)) {
-        return false; // User already exists
+      if (response.token && response.user) {
+        const userSession = {
+          id: response.user.id,
+          name: response.user.name || name,
+          email: response.user.email,
+          createdAt: new Date().toISOString()
+        };
+        
+        setUser(userSession);
+        return true;
       }
       
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        name,
-        email,
-        password,
-        createdAt: new Date().toISOString()
-      };
-      
-      // Save to users array
-      users.push(newUser);
-      localStorage.setItem('users', JSON.stringify(users));
-      
-      // Sign in the new user
-      const userSession = {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        createdAt: newUser.createdAt
-      };
-      
-      setUser(userSession);
-      localStorage.setItem('currentUser', JSON.stringify(userSession));
-      
-      return true;
+      return false;
     } catch (error) {
       console.error('Sign up error:', error);
       return false;
@@ -132,8 +100,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const signOut = () => {
+    authApi.logout();
     setUser(null);
-    localStorage.removeItem('currentUser');
   };
 
   const getUserResume = (): ResumeData | null => {

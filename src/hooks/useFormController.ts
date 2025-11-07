@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ZodError } from 'zod';
 import type { ResumeData, SectionVisibility } from '../utils/validationSchemas';
-import { validateSection, validateCompleteResume } from '../utils/validationSchemas';
+import { validateSection, validateCompleteResume, createFlexibleResumeSchema } from '../utils/validationSchemas';
 
 // Form validation errors interface
 export interface FormErrors {
@@ -9,7 +9,7 @@ export interface FormErrors {
 }
 
 // Form controller hook
-export const useFormController = (initialData: ResumeData) => {
+export const useFormController = (initialData: ResumeData, sectionVisibility?: SectionVisibility) => {
   const [formData, setFormData] = useState<ResumeData>(initialData);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isValid, setIsValid] = useState(false);
@@ -25,7 +25,14 @@ export const useFormController = (initialData: ResumeData) => {
         (newData.basicdetails as any)[field] = value;
       } else if (section === 'about') {
         newData.about = value;
+      } else if (typeof index === 'number' && field === null) {
+        // Handle direct array item updates (like skills)
+        const sectionArray = (newData as any)[section] as any[];
+        if (sectionArray && typeof sectionArray[index] !== 'undefined') {
+          sectionArray[index] = value;
+        }
       } else if (typeof index === 'number' && field) {
+        // Handle object property updates in arrays
         const sectionArray = (newData as any)[section] as any[];
         if (sectionArray && sectionArray[index]) {
           sectionArray[index][field] = value;
@@ -97,7 +104,14 @@ export const useFormController = (initialData: ResumeData) => {
   // Validate entire form
   const validateForm = useCallback(() => {
     try {
-      validateCompleteResume(formData);
+      // Use flexible schema if section visibility is provided
+      if (sectionVisibility) {
+        const flexibleSchema = createFlexibleResumeSchema(sectionVisibility);
+        flexibleSchema.parse(formData);
+      } else {
+        validateCompleteResume(formData);
+      }
+      
       setErrors({});
       setIsValid(true);
       return true;
@@ -127,7 +141,7 @@ export const useFormController = (initialData: ResumeData) => {
       setIsValid(false);
       return false;
     }
-  }, [formData]);
+  }, [formData, sectionVisibility]);
 
   // Auto-validate on data change
   useEffect(() => {

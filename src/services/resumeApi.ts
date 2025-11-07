@@ -22,6 +22,39 @@ interface ResumeUploadRequest {
   userId?: string;
 }
 
+interface SaveResumeRequest {
+  resumeData: ResumeData;
+  userId?: string;
+}
+
+interface ResumeResponse {
+  success: boolean;
+  data?: ResumeData;
+  message?: string;
+  id?: string;
+}
+
+interface GenerateResumeRequest {
+  resumeData: ResumeData;
+  options?: {
+    targetRole?: string;
+    industry?: string;
+    experienceLevel?: 'entry' | 'mid' | 'senior';
+  };
+}
+
+interface GeneratedResumeResponse {
+  success: boolean;
+  html?: string;
+  data?: any;
+  message?: string;
+}
+
+interface ResumeUploadRequest {
+  resumeData: ResumeData;
+  userId?: string;
+}
+
 // POST /api/resume/Ats_resume - Generate HTML resume (protected route)
 interface ATSResumeRequest {
   resumeData: ResumeData;

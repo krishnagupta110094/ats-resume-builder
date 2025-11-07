@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Download, ArrowLeft, Wand2 } from 'lucide-react';
+import ExportOptions from '../components/ExportOptions';
+import ResumeAppBar from '../components/ResumeAppBar';
+import LogoutButton from '../components/LogoutButton';
 import './ResumePreview.css';
 
 interface GeneratedResumeData {
@@ -52,16 +55,43 @@ export default function ResumePreviewPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [resumeData, setResumeData] = useState<GeneratedResumeData | null>(null);
+  const [generatedHTML, setGeneratedHTML] = useState<string | null>(null);
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>({
     experience: true,
     projects: true,
     certifications: true
   });
 
+  const handleNavigation = (nav: string) => {
+    switch (nav) {
+      case 'dashboard':
+        navigate('/dashboard');
+        break;
+      case 'generate':
+        navigate('/builder');
+        break;
+      case 'certification':
+        navigate('/certificate-generator');
+        break;
+      case 'profile':
+        navigate('/profile');
+        break;
+      case 'change-password':
+        navigate('/change-password');
+        break;
+      case 'leads':
+        console.log('Customer Leads - Coming Soon');
+        break;
+      default:
+        break;
+    }
+  };
+
   useEffect(() => {
     // Get the resume data passed from the previous page
     if (location.state && location.state.generatedResume) {
       setResumeData(location.state.generatedResume);
+      setGeneratedHTML(location.state.generatedHTML || null);
       setSectionVisibility(location.state.sectionVisibility || {
         experience: true,
         projects: true,
@@ -72,6 +102,48 @@ export default function ResumePreviewPage() {
       navigate('/builder');
     }
   }, [location, navigate]);
+
+  // Transform resume data for export service
+  const transformResumeDataForExport = () => {
+    if (!resumeData) return null;
+    
+    return {
+      personalInfo: {
+        name: resumeData.basicdetails.name,
+        email: resumeData.basicdetails.email,
+        phone: resumeData.basicdetails.phone,
+        location: resumeData.basicdetails.address,
+        website: resumeData.basicdetails.website
+      },
+      summary: resumeData.about,
+      experience: resumeData.experience?.map(exp => ({
+        title: exp.role,
+        company: exp.company,
+        location: exp.location,
+        startDate: exp.year.split('-')[0] || '',
+        endDate: exp.year.split('-')[1] || 'Present',
+        description: exp.description
+      })),
+      education: resumeData.education?.map(edu => ({
+        degree: edu.degree,
+        institution: edu.university,
+        graduationDate: edu.year,
+        gpa: edu.cgpa
+      })),
+      skills: [...(resumeData.techSkills || []), ...(resumeData.softSkills || [])],
+      projects: resumeData.projects?.map(proj => ({
+        name: proj.name,
+        description: proj.result,
+        technologies: proj.technologies,
+        link: proj.github
+      })),
+      certifications: resumeData.certifications?.map(cert => ({
+        name: cert.name,
+        issuer: 'Professional Certification',
+        date: new Date().getFullYear().toString()
+      }))
+    };
+  };
 
   const downloadPDF = () => {
     const printContent = document.getElementById('resume-preview')?.innerHTML;
@@ -149,8 +221,10 @@ export default function ResumePreviewPage() {
   }
 
   return (
-    <div className="resume-preview-page">
-      {/* Header */}
+    <>
+      <ResumeAppBar onNav={handleNavigation} rightAction={<LogoutButton />} />
+      <div className="resume-preview-page" style={{ marginTop: '64px' }}>
+        {/* Header */}
       <div className="preview-page-header">
         <button onClick={goBackToBuilder} className="back-button">
           <ArrowLeft size={20} />
@@ -160,18 +234,33 @@ export default function ResumePreviewPage() {
         <div className="preview-page-title">
           <Wand2 size={24} className="ai-icon" />
           <h1>Your ATS-Optimized Resume</h1>
-          <span className="ai-badge">AI Generated</span>
         </div>
         
-        <button onClick={downloadPDF} className="download-pdf-btn">
-          <Download size={18} />
-          Download PDF
-        </button>
+        <div className="preview-actions">
+          <ExportOptions
+            resumeData={transformResumeDataForExport()}
+            resumeElementId="resume-preview"
+            fileName={resumeData?.basicdetails.name.replace(/\s+/g, '_') || 'resume'}
+          />
+          <button onClick={downloadPDF} className="download-pdf-btn-legacy">
+            <Download size={18} />
+            Print/Save
+          </button>
+        </div>
       </div>
 
       {/* Resume Content */}
       <div className="resume-container">
-        <div id="resume-preview" className="resume-content">
+        {generatedHTML ? (
+          // Display AI-generated HTML from backend
+          <div 
+            id="resume-preview" 
+            className="resume-content ai-generated"
+            dangerouslySetInnerHTML={{ __html: generatedHTML }}
+          />
+        ) : (
+          // Fallback: Display formatted resume data
+          <div id="resume-preview" className="resume-content">
           {/* Header */}
           <div className="preview-header-section">
             <h1 className="preview-name">{resumeData.basicdetails.name}</h1>
@@ -284,7 +373,9 @@ export default function ResumePreviewPage() {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
+    </>
   );
 }

@@ -54,6 +54,22 @@ export const resumeSchema = z.object({
   projects: z.array(projectSchema).min(1, 'At least one project is required')
 });
 
+// Create a flexible schema that adapts based on section visibility
+export const createFlexibleResumeSchema = (sectionVisibility: SectionVisibility) => {
+  return z.object({
+    basicdetails: basicDetailsSchema,
+    about: z.string().min(50, 'Professional summary must be at least 50 characters').max(500, 'Summary too long'),
+    education: z.array(educationSchema).min(1, 'At least one education entry is required'),
+    techSkills: z.array(z.string().min(1, 'Skill cannot be empty')).min(1, 'At least one technical skill is required'),
+    softSkills: z.array(z.string().min(1, 'Skill cannot be empty')).min(1, 'At least one soft skill is required'),
+    certifications: z.array(certificationSchema).optional(),
+    experience: sectionVisibility.experience 
+      ? z.array(experienceSchema).min(1, 'At least one work experience is required when experience section is visible')
+      : z.array(experienceSchema).optional(),
+    projects: z.array(projectSchema).min(1, 'At least one project is required')
+  });
+};
+
 // Section Visibility Schema
 export const sectionVisibilitySchema = z.object({
   experience: z.boolean(),
@@ -79,11 +95,13 @@ export const validateSection = (section: string, data: any) => {
       case 'education':
         return z.array(educationSchema).parse(data);
       case 'experience':
-        return z.array(experienceSchema).parse(data);
+        // Experience is optional - only validate if array has content
+        return data && data.length > 0 ? z.array(experienceSchema).parse(data) : [];
       case 'projects':
         return z.array(projectSchema).parse(data);
       case 'certifications':
-        return z.array(certificationSchema).parse(data);
+        // Certifications are optional
+        return data && data.length > 0 ? z.array(certificationSchema).parse(data) : [];
       default:
         throw new Error(`Unknown section: ${section}`);
     }

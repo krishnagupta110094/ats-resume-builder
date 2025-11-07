@@ -5,6 +5,95 @@
   padding: 0;
 }
 
+/* Prevent spacebar from causing page issues */
+html, body {
+  overflow-x: hidden;
+}
+
+body {
+  position: relative;
+}
+
+/* Prevent spacebar from activating buttons unless explicitly focused */
+button:not(:focus-visible) {
+  outline: none;
+}
+
+/* Prevent default spacebar scrolling behavior */
+body {
+  scroll-behavior: smooth;
+}
+
+/* Additional safety to prevent white screen on spacebar press */
+*:focus {
+  outline-offset: 2px;
+}
+
+/* Ensure body maintains its background even during interactions */
+body:focus,
+body:active,
+html:focus,
+html:active {
+  background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%) !important;
+}
+
+/* Error Boundary Styles */
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--color-gray-100) 100%);
+  padding: 2rem;
+}
+
+.error-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.error-container h2 {
+  color: var(--color-danger);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+.error-container details {
+  text-align: left;
+  margin: 1rem 0;
+  padding: 1rem;
+  background: var(--color-gray-50);
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-200);
+}
+
+.error-container summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.retry-button {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retry-button:hover {
+  background: var(--color-primary-dark);
+}
+
 /* CSS Variables for Theme */
 :root {
   --color-primary: #2563eb;
