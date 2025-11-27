@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import ProfileEditPage from './pages/ProfileEditPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import CertificateGeneratorPage from './pages/CertificateGeneratorPage';
+import PublicCertificateView from './pages/PublicCertificateView';
 
 export default function App() {
   // Prevent spacebar from causing page issues
@@ -95,6 +96,15 @@ export default function App() {
                     <CertificateGeneratorPage />
                   </ErrorBoundary>
                 </ProtectedRoute>
+              } 
+            />
+            {/* Public certificate view - no authentication required */}
+            <Route 
+              path="/certificate/:certificateId" 
+              element={
+                <ErrorBoundary>
+                  <PublicCertificateView />
+                </ErrorBoundary>
               } 
             />
             <Route path="/" element={<Navigate to="/signin" replace />} />

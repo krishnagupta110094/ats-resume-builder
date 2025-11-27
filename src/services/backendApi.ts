@@ -1,5 +1,5 @@
-import { apiService } from './apiService';
-import type { ResumeData } from '../utils/validationSchemas';
+import { apiService } from "./apiService";
+import type { ResumeData } from "../utils/validationSchemas";
 
 // API Request/Response Interfaces matching your backend exactly
 interface LoginRequest {
@@ -36,9 +36,9 @@ interface ATSResumeRequest {
   options?: {
     targetRole?: string;
     industry?: string;
-    experienceLevel?: 'entry' | 'mid' | 'senior';
+    experienceLevel?: "entry" | "mid" | "senior";
     atsOptimization?: boolean;
-    keywordDensity?: 'low' | 'medium' | 'high';
+    keywordDensity?: "low" | "medium" | "high";
   };
 }
 
@@ -65,70 +65,89 @@ export class AuthApiService {
    */
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      console.log('Attempting login with:', { email: credentials.email, hasPhone: !!credentials.phone });
-      
-      // Direct fetch call to your backend
-      const response = await fetch('http://localhost:3000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: credentials.email,
-          password: credentials.password,
-          phone: credentials.phone || '+1-234-567-8900' // Use provided phone or default
-        }),
+      console.log("Attempting login with:", {
+        email: credentials.email,
+        hasPhone: !!credentials.phone,
       });
 
-      console.log('Response status:', response.status);
+      // Direct fetch call to your backend
+      const response = await fetch(
+        "https://crm-backend-iahe.onrender.com/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+            phone: credentials.phone || "+1-234-567-8900", // Use provided phone or default
+          }),
+        }
+      );
+
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Login error response:', errorText);
-        throw new Error('Login failed');
+        console.error("Login error response:", errorText);
+        throw new Error("Login failed");
       }
 
       const data = await response.json();
-      console.log('Login success, received data:', data);
+      console.log("Login success, received data:", data);
 
-      // Store token
-      if (data.token) {
-        apiService.setAuthToken(data.token);
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user || { 
-          id: '', 
-          email: credentials.email,
-          name: 'User' 
-        }));
+      // Backend returns { auth_key, responseCode, message }
+      const token = data.auth_key || data.token;
+
+      if (!token) {
+        throw new Error("No token received from server");
       }
 
+      // Store token
+      apiService.setAuthToken(token);
+      localStorage.setItem("authToken", token);
+
+      const user = data.user || {
+        id: "",
+        email: credentials.email,
+        name: "User",
+      };
+
+      localStorage.setItem("user", JSON.stringify(user));
+
       return {
-        token: data.token,
-        user: data.user || { id: '', email: credentials.email, name: 'User' }
+        token: token,
+        user: user,
       };
     } catch (error) {
-      console.error('Error logging in:', error);
-      throw new Error('Invalid email or password. Please check your credentials.');
+      console.error("Error logging in:", error);
+      throw new Error(
+        "Invalid email or password. Please check your credentials."
+      );
     }
-  }  /**
+  }
+  /**
    * POST /api/register - Register new user with name, email, phone, password
    */
   static async register(userData: RegisterRequest): Promise<LoginResponse> {
     try {
-      const response = await apiService.post('/api/register', userData, { skipAuth: true });
+      const response = await apiService.post("/api/register", userData, {
+        skipAuth: true,
+      });
       const data = response.data as LoginResponse;
-      
+
       // Store token if registration auto-logs in the user
       if (data.token) {
         apiService.setAuthToken(data.token);
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem("authToken", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
       }
-      
+
       return data;
     } catch (error) {
-      console.error('Error registering:', error);
-      throw new Error('Registration failed. Please try again.');
+      console.error("Error registering:", error);
+      throw new Error("Registration failed. Please try again.");
     }
   }
 
@@ -137,11 +156,11 @@ export class AuthApiService {
    */
   static logout(): void {
     try {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
       apiService.clearAuth();
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error("Error logging out:", error);
     }
   }
 
@@ -150,10 +169,10 @@ export class AuthApiService {
    */
   static getCurrentUser(): { id: string; email: string; name?: string } | null {
     try {
-      const userStr = localStorage.getItem('user');
+      const userStr = localStorage.getItem("user");
       return userStr ? JSON.parse(userStr) : null;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      console.error("Error getting current user:", error);
       return null;
     }
   }
@@ -168,11 +187,13 @@ export class ResumeApiService {
    */
   async uploadResume(data: ResumeUploadRequest): Promise<any> {
     try {
-      const response = await apiService.post('/api/resume/Resume', data, { skipAuth: true });
+      const response = await apiService.post("/api/resume/Resume", data, {
+        skipAuth: true,
+      });
       return response.data;
     } catch (error) {
-      console.error('Error uploading resume:', error);
-      throw new Error('Failed to upload resume. Please try again.');
+      console.error("Error uploading resume:", error);
+      throw new Error("Failed to upload resume. Please try again.");
     }
   }
 
@@ -181,62 +202,68 @@ export class ResumeApiService {
    */
   async generateATSResume(data: ATSResumeRequest): Promise<ATSResumeResponse> {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       if (!token) {
-        throw new Error('Authentication required. Please log in.');
+        throw new Error("Authentication required. Please log in.");
       }
 
       // Direct fetch call to your backend
-      const response = await fetch('http://localhost:3000/api/resume/Ats_resume', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(data.resumeData), // Your backend expects resumeData directly
-      });
+      const response = await fetch(
+        "https://crm-backend-iahe.onrender.com/api/resume/Ats_resume",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data.resumeData), // Your backend expects resumeData directly
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.text();
-        throw new Error(errorData || 'Failed to generate resume');
+        throw new Error(errorData || "Failed to generate resume");
       }
 
       // Your backend returns HTML directly
       const htmlContent = await response.text();
-      
+
       return {
         success: true,
         html: htmlContent,
-        message: 'Resume generated successfully'
+        message: "Resume generated successfully",
       };
     } catch (error) {
-      console.error('Error generating ATS resume:', error);
-      throw new Error('Failed to generate ATS resume. Please try again.');
+      console.error("Error generating ATS resume:", error);
+      throw new Error("Failed to generate ATS resume. Please try again.");
     }
   }
 
   /**
    * Combined: Save resume data and generate ATS version
    */
-  async saveAndGenerate(resumeData: ResumeData, options?: any): Promise<ATSResumeResponse> {
+  async saveAndGenerate(
+    resumeData: ResumeData,
+    options?: any
+  ): Promise<ATSResumeResponse> {
     try {
       // Skip upload step - generateATSResume already sends all data to backend
       // The /api/resume/Resume endpoint is not needed since /api/resume/Ats_resume receives full data
-      
+
       // Generate the ATS version (requires authentication and receives full resume data)
       const atsRequest: ATSResumeRequest = {
         resumeData,
         options: {
           atsOptimization: true,
-          keywordDensity: 'medium',
-          ...options
-        }
+          keywordDensity: "medium",
+          ...options,
+        },
       };
-      
+
       return await this.generateATSResume(atsRequest);
     } catch (error) {
-      console.error('Error in save and generate:', error);
-      throw new Error('Failed to save and generate resume. Please try again.');
+      console.error("Error in save and generate:", error);
+      throw new Error("Failed to save and generate resume. Please try again.");
     }
   }
 }
@@ -250,28 +277,28 @@ export class UserApiService {
    */
   async getCurrentUser(): Promise<UserResponse> {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       if (!token) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
 
-      const response = await fetch('http://localhost:3000/me', {
-        method: 'GET',
+      const response = await fetch("https://crm-backend-iahe.onrender.com/me", {
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user details');
+        throw new Error("Failed to fetch user details");
       }
 
       const data = await response.json();
       return data as UserResponse;
     } catch (error) {
-      console.error('Error fetching user:', error);
-      throw new Error('Failed to fetch user details. Please try again.');
+      console.error("Error fetching user:", error);
+      throw new Error("Failed to fetch user details. Please try again.");
     }
   }
 }
@@ -281,12 +308,16 @@ export class UserApiService {
  * TODO: Replace with backend API when available
  */
 export class ResumeStorageService {
-  private static STORAGE_KEY = 'user_resumes';
+  private static STORAGE_KEY = "user_resumes";
 
   /**
    * Save resume to localStorage
    */
-  static saveResume(userId: string, resumeData: ResumeData, resumeName?: string): void {
+  static saveResume(
+    userId: string,
+    resumeData: ResumeData,
+    resumeName?: string
+  ): void {
     try {
       const resumes = this.getAllResumes(userId);
       const newResume = {
@@ -296,13 +327,16 @@ export class ResumeStorageService {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         views: 0,
-        downloads: 0
+        downloads: 0,
       };
 
       resumes.push(newResume);
-      localStorage.setItem(`${this.STORAGE_KEY}_${userId}`, JSON.stringify(resumes));
+      localStorage.setItem(
+        `${this.STORAGE_KEY}_${userId}`,
+        JSON.stringify(resumes)
+      );
     } catch (error) {
-      console.error('Error saving resume:', error);
+      console.error("Error saving resume:", error);
     }
   }
 
@@ -314,7 +348,7 @@ export class ResumeStorageService {
       const data = localStorage.getItem(`${this.STORAGE_KEY}_${userId}`);
       return data ? JSON.parse(data) : [];
     } catch (error) {
-      console.error('Error loading resumes:', error);
+      console.error("Error loading resumes:", error);
       return [];
     }
   }
@@ -325,9 +359,9 @@ export class ResumeStorageService {
   static getResume(userId: string, resumeId: string): any | null {
     try {
       const resumes = this.getAllResumes(userId);
-      return resumes.find(r => r.id === resumeId) || null;
+      return resumes.find((r) => r.id === resumeId) || null;
     } catch (error) {
-      console.error('Error loading resume:', error);
+      console.error("Error loading resume:", error);
       return null;
     }
   }
@@ -338,11 +372,14 @@ export class ResumeStorageService {
   static deleteResume(userId: string, resumeId: string): boolean {
     try {
       const resumes = this.getAllResumes(userId);
-      const filtered = resumes.filter(r => r.id !== resumeId);
-      localStorage.setItem(`${this.STORAGE_KEY}_${userId}`, JSON.stringify(filtered));
+      const filtered = resumes.filter((r) => r.id !== resumeId);
+      localStorage.setItem(
+        `${this.STORAGE_KEY}_${userId}`,
+        JSON.stringify(filtered)
+      );
       return true;
     } catch (error) {
-      console.error('Error deleting resume:', error);
+      console.error("Error deleting resume:", error);
       return false;
     }
   }
@@ -350,19 +387,26 @@ export class ResumeStorageService {
   /**
    * Update resume
    */
-  static updateResume(userId: string, resumeId: string, resumeData: ResumeData): boolean {
+  static updateResume(
+    userId: string,
+    resumeId: string,
+    resumeData: ResumeData
+  ): boolean {
     try {
       const resumes = this.getAllResumes(userId);
-      const index = resumes.findIndex(r => r.id === resumeId);
+      const index = resumes.findIndex((r) => r.id === resumeId);
       if (index !== -1) {
         resumes[index].data = resumeData;
         resumes[index].updatedAt = new Date().toISOString();
-        localStorage.setItem(`${this.STORAGE_KEY}_${userId}`, JSON.stringify(resumes));
+        localStorage.setItem(
+          `${this.STORAGE_KEY}_${userId}`,
+          JSON.stringify(resumes)
+        );
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Error updating resume:', error);
+      console.error("Error updating resume:", error);
       return false;
     }
   }
@@ -373,13 +417,16 @@ export class ResumeStorageService {
   static incrementViews(userId: string, resumeId: string): void {
     try {
       const resumes = this.getAllResumes(userId);
-      const resume = resumes.find(r => r.id === resumeId);
+      const resume = resumes.find((r) => r.id === resumeId);
       if (resume) {
         resume.views = (resume.views || 0) + 1;
-        localStorage.setItem(`${this.STORAGE_KEY}_${userId}`, JSON.stringify(resumes));
+        localStorage.setItem(
+          `${this.STORAGE_KEY}_${userId}`,
+          JSON.stringify(resumes)
+        );
       }
     } catch (error) {
-      console.error('Error incrementing views:', error);
+      console.error("Error incrementing views:", error);
     }
   }
 
@@ -389,13 +436,16 @@ export class ResumeStorageService {
   static incrementDownloads(userId: string, resumeId: string): void {
     try {
       const resumes = this.getAllResumes(userId);
-      const resume = resumes.find(r => r.id === resumeId);
+      const resume = resumes.find((r) => r.id === resumeId);
       if (resume) {
         resume.downloads = (resume.downloads || 0) + 1;
-        localStorage.setItem(`${this.STORAGE_KEY}_${userId}`, JSON.stringify(resumes));
+        localStorage.setItem(
+          `${this.STORAGE_KEY}_${userId}`,
+          JSON.stringify(resumes)
+        );
       }
     } catch (error) {
-      console.error('Error incrementing downloads:', error);
+      console.error("Error incrementing downloads:", error);
     }
   }
 }
@@ -415,45 +465,134 @@ export class CertificateApiService {
   /**
    * POST /api/certificates/GenerateCertificate - Generate certificate HTML
    */
-  static async generateCertificate(data: CertificateGenerationRequest): Promise<string> {
+  static async generateCertificate(
+    data: CertificateGenerationRequest
+  ): Promise<string> {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem("authToken");
       if (!token) {
-        throw new Error('Authentication required. Please log in.');
+        throw new Error("Authentication required. Please log in.");
       }
 
-      console.log('Generating certificate with data:', data);
+      console.log("Generating certificate with data:", data);
 
       // Use the same base URL pattern as other API calls
-      const baseURL = 'http://localhost:3000';
-      const response = await fetch(`${baseURL}/api/certificates/GenerateCertificate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(data),
-      });
+      const baseURL = "https://crm-backend-iahe.onrender.com";
+      const response = await fetch(
+        `${baseURL}/api/certificates/GenerateCertificate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        }
+      );
 
-      console.log('Certificate generation response status:', response.status);
+      console.log("Certificate generation response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Certificate generation error:', errorText);
-        
+        console.error("Certificate generation error:", errorText);
+
         if (response.status === 401) {
-          throw new Error('Session expired. Please log in again.');
+          throw new Error("Session expired. Please log in again.");
         }
-        throw new Error('Failed to generate certificate. Please try again.');
+        throw new Error("Failed to generate certificate. Please try again.");
       }
 
       // Backend returns HTML as text
       const html = await response.text();
-      console.log('Certificate generated successfully');
-      
+      console.log("Certificate generated successfully");
+
       return html;
     } catch (error: any) {
-      console.error('Certificate generation error:', error);
+      console.error("Certificate generation error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * POST /api/certificates/save - Save certificate and get shareable ID
+   */
+  static async saveCertificate(
+    data: CertificateGenerationRequest & { html: string }
+  ): Promise<{ certificateId: string; shareableUrl: string }> {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Authentication required. Please log in.");
+      }
+
+      console.log("Saving certificate with data:", data);
+
+      const baseURL = "https://crm-backend-iahe.onrender.com";
+      const response = await fetch(`${baseURL}/api/certificates/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log("Certificate save response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Certificate save error:", errorText);
+
+        if (response.status === 401) {
+          throw new Error("Session expired. Please log in again.");
+        }
+        throw new Error("Failed to save certificate. Please try again.");
+      }
+
+      const result = await response.json();
+      console.log("Certificate saved successfully:", result);
+
+      return result;
+    } catch (error: any) {
+      console.error("Certificate save error:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * GET /api/certificates/:id - Get certificate by ID (public)
+   */
+  static async getCertificateById(
+    certificateId: string
+  ): Promise<{ html: string; data: CertificateGenerationRequest }> {
+    try {
+      console.log("Fetching certificate with ID:", certificateId);
+
+      const baseURL = "https://crm-backend-iahe.onrender.com";
+      const response = await fetch(
+        `${baseURL}/api/certificates/${certificateId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("Certificate fetch response status:", response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Certificate fetch error:", errorText);
+        throw new Error("Certificate not found or has expired.");
+      }
+
+      const result = await response.json();
+      console.log("Certificate fetched successfully");
+
+      return result;
+    } catch (error: any) {
+      console.error("Certificate fetch error:", error);
       throw error;
     }
   }
@@ -475,5 +614,5 @@ export type {
   ATSResumeRequest,
   ATSResumeResponse,
   UserResponse,
-  CertificateGenerationRequest
+  CertificateGenerationRequest,
 };

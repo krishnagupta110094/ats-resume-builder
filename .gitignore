@@ -85,3 +85,17 @@ Desktop.ini
 
 # Vitest
 coverage
+
+# Deployment/Runtime Config
+/vercel.json
+
+# Temporary Project Notes
+IMPLEMENTATION_SUMMARY.md
+CERTIFICATE_SHARING_FEATURE.md
+
+# Dependency lock files (Track if possible, ignore if necessary)
+/pnpm-lock.yaml
+/yarn.lock
+
+# Editor Configuration
+/.idea/ # For WebStorm/IntelliJ IDEA projects

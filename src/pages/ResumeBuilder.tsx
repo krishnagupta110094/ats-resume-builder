@@ -8,6 +8,7 @@ import { initialResumeData } from '../data/initialData';
 import EnvironmentSelector from '../components/EnvironmentSelector';
 import LogoutButton from '../components/LogoutButton';
 import ResumeAppBar from '../components/ResumeAppBar';
+import PaymentModal from '../components/PaymentModal';
 import type { ResumeData } from '../types/resume';
 import './ResumeBuilder.css';
 import {
@@ -54,7 +55,6 @@ export default function ResumeBuilder() {
 
   // Theme state
   const [theme, setTheme] = useState('modern');
-  const [showThemeModal, setShowThemeModal] = useState(false);
   
   // Available themes with metadata
   const themes = [
@@ -178,6 +178,10 @@ export default function ResumeBuilder() {
   
   // Environment selector state
   const [showEnvSelector, setShowEnvSelector] = useState(false);
+  
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const GOOGLE_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfxAGtAE7WBt1xM61TAEdP5Zete7kJEL3iy2IBDVWwSI9Vuzw/viewform';
 
   // Helper functions for array operations
   const addItem = (section: string) => {
@@ -228,6 +232,36 @@ export default function ResumeBuilder() {
 
   const removeItem = (section: string, index: number) => {
     patchArray(section, 'remove', index);
+  };
+
+  // Handle Generate Resume button click - Show payment modal first
+  const handleGenerateClick = () => {
+    setApiError(null);
+    
+    // Minimal validation - just name and email required
+    if (!resume.basicdetails.name || !resume.basicdetails.email) {
+      setApiError('Please fill in at least your name and email before generating your resume.');
+      return;
+    }
+    
+    // Show payment modal
+    setShowPaymentModal(true);
+  };
+
+  // Handle payment confirmation - Redirect to Google Form
+  const handlePaymentConfirm = () => {
+    setShowPaymentModal(false);
+    
+    // Save resume data before redirecting
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      const resumeName = `${resume.basicdetails.name}'s Resume`;
+      resumeStorage.saveResume(user.id || 'local', resume, resumeName);
+    }
+    
+    // Redirect to Google Form
+    window.location.href = GOOGLE_FORM_URL;
   };
 
   // AI Resume Generation Function
@@ -346,59 +380,8 @@ export default function ResumeBuilder() {
                   </button>
                 ))}
               </div>
-              <button 
-                type="button"
-                className="theme-compare-btn"
-                onClick={() => setShowThemeModal(true)}
-              >
-                📊 Compare All Themes
-              </button>
             </div>
           </div>
-          
-          {/* Theme Comparison Modal */}
-          {showThemeModal && (
-            <div className="theme-modal-overlay" onClick={() => setShowThemeModal(false)}>
-              <div className="theme-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="theme-modal-header">
-                  <h2>Compare Resume Themes</h2>
-                  <button 
-                    type="button"
-                    className="theme-modal-close"
-                    onClick={() => setShowThemeModal(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="theme-modal-content">
-                  <div className="theme-comparison-grid">
-                    {themes.map((themeOption) => (
-                      <div 
-                        key={themeOption.id}
-                        className={`theme-comparison-card ${theme === themeOption.id ? 'selected' : ''}`}
-                        onClick={() => {
-                          setTheme(themeOption.id);
-                          setShowThemeModal(false);
-                        }}
-                      >
-                        <div className="theme-comparison-info">
-                          <h3>{themeOption.name}</h3>
-                          <p>{themeOption.description}</p>
-                          <div className="theme-tag">{themeOption.industry}</div>
-                          <button 
-                            type="button"
-                            className={`theme-select-btn ${theme === themeOption.id ? 'selected' : ''}`}
-                          >
-                            {theme === themeOption.id ? '✓ Selected' : 'Select Theme'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Basic Details */}
           <FormSection title="Basic Details">
@@ -734,7 +717,7 @@ export default function ResumeBuilder() {
                 💾 Save Draft
               </button>
               <button 
-                onClick={generateATSResume}
+                onClick={handleGenerateClick}
                 disabled={isGenerating}
                 className={`generate-ats-btn ${isGenerating ? 'generating' : ''}`}
               >
@@ -746,7 +729,7 @@ export default function ResumeBuilder() {
                 ) : (
                   <>
                     <Wand2 size={20} />
-                    Generate My ATS Resume
+                    Generate My ATS Resume (₹79)
                   </>
                 )}
               </button>
@@ -771,7 +754,7 @@ export default function ResumeBuilder() {
             💾 Save Draft
           </button>
           <button 
-            onClick={generateATSResume}
+            onClick={handleGenerateClick}
             disabled={isGenerating}
             className="sticky-btn generate-btn"
           >
@@ -783,12 +766,20 @@ export default function ResumeBuilder() {
             ) : (
               <>
                 <Wand2 size={18} />
-                Generate Resume
+                Generate Resume (₹79)
               </>
             )}
           </button>
         </div>
       </div>
+      
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPaymentConfirm={handlePaymentConfirm}
+        amount={79}
+      />
       </div>
     </>
   );
